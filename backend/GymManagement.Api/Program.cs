@@ -25,7 +25,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // Enable controllers via .AddControllers() (routing), and globally convert enums to strings via .AddJsonOptions()
 
-builder.Services.AddScoped<IMemberService, MemberService>();  // Register the contract (the interface and the class that fulfills it)
+builder.Services.AddScoped<IMemberService, MemberService>();
+builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 
 var app = builder.Build(); // Use all the prepared "materials" to build the app — the actual running web application
 
