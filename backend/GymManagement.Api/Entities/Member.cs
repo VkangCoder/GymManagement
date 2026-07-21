@@ -9,7 +9,7 @@ public class Member
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string? Id { get; set; } // null → driver tự generate ObjectId khi Insert
+    public string? Id { get; set; }
 
     [BsonElement("full_name")]
     public required string FullName { get; set; }

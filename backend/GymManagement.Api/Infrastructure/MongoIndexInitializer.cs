@@ -23,30 +23,18 @@ public class MongoIndexInitializer : IHostedService
 
     public async Task StartAsync(CancellationToken ct)
     {
-        var database = _client.GetDatabase(_settings.DatabaseName);
-        var members = database.GetCollection<Member>("members");
+        var members = _client.GetDatabase(_settings.DatabaseName).GetCollection<Member>("members");
 
-        // Email: unique + case-insensitive (collation strength 2)
         var emailIndex = new CreateIndexModel<Member>(
             Builders<Member>.IndexKeys.Ascending(m => m.Email),
-            new CreateIndexOptions
-            {
-                Unique = true,
-                Name = "ux_members_email",
-                Collation = new Collation("en", strength: CollationStrength.Secondary)
-            });
+            new CreateIndexOptions { Unique = true, Name = "ux_members_email" });
 
-        // Phone: unique
         var phoneIndex = new CreateIndexModel<Member>(
             Builders<Member>.IndexKeys.Ascending(m => m.PhoneNumber),
-            new CreateIndexOptions
-            {
-                Unique = true,
-                Name = "ux_members_phone"
-            });
+            new CreateIndexOptions { Unique = true, Name = "ux_members_phone" });
 
         await members.Indexes.CreateManyAsync(new[] { emailIndex, phoneIndex }, ct);
-        _logger.LogInformation("MongoDB indexes ensured for 'members' collection.");
+        _logger.LogInformation("MongoDB indexes ensured for 'members'.");
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;

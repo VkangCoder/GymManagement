@@ -1,6 +1,6 @@
-using GymManagement.Api.Entities;
 using GymManagement.Api.Exceptions;
 using GymManagement.Api.Interfaces;
+using GymManagement.Api.Mappings;
 using GymManagement.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,36 +15,27 @@ public class MembersController : ControllerBase
     public MembersController(IMemberService memberService) => _memberService = memberService;
 
     [HttpGet]
-    public async Task<ActionResult<List<Member>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<List<MemberResponse>>> GetAll(CancellationToken ct)
     {
         var members = await _memberService.GetAllAsync(ct);
-        return Ok(members);
+        return Ok(members.Select(m => m.ToResponse()));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Member>> GetById(string id, CancellationToken ct)
+    public async Task<ActionResult<MemberResponse>> GetById(string id, CancellationToken ct)
     {
         var member = await _memberService.GetByIdAsync(id, ct);
-        return member is null ? NotFound() : Ok(member);
+        return member is null ? NotFound() : Ok(member.ToResponse());
     }
 
     [HttpPost]
-    public async Task<ActionResult<Member>> CreateMember(
-    [FromBody] CreateMemberRequest request, CancellationToken ct)
+    public async Task<ActionResult<MemberResponse>> CreateMember(
+        [FromBody] CreateMemberRequest request, CancellationToken ct)
     {
-        var newMember = new Member
-        {
-            FullName = request.FullName,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Gender = request.Gender,
-            DateOfBirth = request.DateOfBirth
-        };
-
         try
         {
-            var created = await _memberService.CreateMemberAsync(newMember, ct);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            var created = await _memberService.CreateMemberAsync(request.ToEntity(), ct);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created.ToResponse());
         }
         catch (DuplicateMemberException ex)
         {
@@ -53,23 +44,20 @@ public class MembersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<Member>> UpdateMember(
+    public async Task<ActionResult<MemberResponse>> UpdateMember(
         string id, [FromBody] UpdateMemberRequest request, CancellationToken ct)
     {
-        var memberToUpdate = new Member
+        try
         {
-            FullName = request.FullName,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
-            Gender = request.Gender,
-            DateOfBirth = request.DateOfBirth,
-            Status = request.Status
-        };
-
-        var updated = await _memberService.UpdateMemberAsync(id, memberToUpdate, ct);
-        return updated is null
-            ? NotFound($"Không tìm thấy hội viên có Id: {id} để cập nhật.")
-            : Ok(updated);
+            var updated = await _memberService.UpdateMemberAsync(id, request.ToEntity(), ct);
+            return updated is null
+                ? NotFound($"Không tìm thấy hội viên có Id: {id} để cập nhật.")
+                : Ok(updated.ToResponse());
+        }
+        catch (DuplicateMemberException ex)
+        {
+            return Conflict(new { field = ex.Field, message = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]

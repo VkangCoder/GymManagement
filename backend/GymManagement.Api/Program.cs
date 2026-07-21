@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using GymManagement.Api.Infrastructure;
 using GymManagement.Api.Interfaces;
 using GymManagement.Api.Services;
 using GymManagement.Api.Settings;
@@ -27,6 +28,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
+builder.Services.AddHostedService<MongoIndexInitializer>();
 
 var app = builder.Build(); // Use all the prepared "materials" to build the app — the actual running web application
 

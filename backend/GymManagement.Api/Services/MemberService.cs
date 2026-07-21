@@ -31,7 +31,7 @@ public class MemberService : IMemberService
     public async Task<Member> CreateMemberAsync(Member member, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        member.Email = member.Email.Trim().ToLowerInvariant(); // chuẩn hóa
+        member.Email = member.Email.Trim().ToLowerInvariant(); // chuẩn hóa để unique nhất quán
         member.JoinDate = now;
         member.CreatedAt = now;
         member.UpdatedAt = null;
@@ -44,39 +44,34 @@ public class MemberService : IMemberService
         }
         catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
         {
-            throw new DuplicateMemberException(ResolveDuplicateField(ex));
+            throw new DuplicateMemberException(ResolveDuplicateField(ex.WriteError.Message));
         }
-    }
-
-    private static string ResolveDuplicateField(MongoWriteException ex)
-    {
-        var msg = ex.WriteError.Message;
-        if (msg.Contains("ux_members_email", StringComparison.OrdinalIgnoreCase)) return "Email";
-        if (msg.Contains("ux_members_phone", StringComparison.OrdinalIgnoreCase)) return "PhoneNumber";
-        return "Unknown";
     }
 
     public async Task<Member?> UpdateMemberAsync(string id, Member member, CancellationToken ct = default)
     {
         if (!ObjectId.TryParse(id, out _)) return null;
 
-        // Partial update: chỉ đụng các field cho phép sửa.
-        // KHÔNG set CreatedAt/JoinDate → giữ nguyên giá trị gốc.
         var update = Builders<Member>.Update
             .Set(m => m.FullName, member.FullName)
-            .Set(m => m.Email, member.Email)
+            .Set(m => m.Email, member.Email.Trim().ToLowerInvariant())
             .Set(m => m.PhoneNumber, member.PhoneNumber)
             .Set(m => m.Gender, member.Gender)
             .Set(m => m.DateOfBirth, member.DateOfBirth)
             .Set(m => m.Status, member.Status)
             .Set(m => m.UpdatedAt, DateTime.UtcNow);
+        // KHÔNG set CreatedAt / JoinDate → tự preserve
 
-        var options = new FindOneAndUpdateOptions<Member>
+        var options = new FindOneAndUpdateOptions<Member> { ReturnDocument = ReturnDocument.After };
+
+        try
         {
-            ReturnDocument = ReturnDocument.After
-        };
-
-        return await _members.FindOneAndUpdateAsync(m => m.Id == id, update, options, ct);
+            return await _members.FindOneAndUpdateAsync(m => m.Id == id, update, options, ct);
+        }
+        catch (MongoCommandException ex) when (ex.Code == 11000) // duplicate key khi update email/phone
+        {
+            throw new DuplicateMemberException(ResolveDuplicateField(ex.Message));
+        }
     }
 
     public async Task<bool> DeleteMemberAsync(string id, CancellationToken ct = default)
@@ -84,5 +79,12 @@ public class MemberService : IMemberService
         if (!ObjectId.TryParse(id, out _)) return false;
         var result = await _members.DeleteOneAsync(m => m.Id == id, ct);
         return result.DeletedCount > 0;
+    }
+
+    private static string ResolveDuplicateField(string errorMessage)
+    {
+        if (errorMessage.Contains("ux_members_email", StringComparison.OrdinalIgnoreCase)) return "Email";
+        if (errorMessage.Contains("ux_members_phone", StringComparison.OrdinalIgnoreCase)) return "PhoneNumber";
+        return "Unknown";
     }
 }
