@@ -9,7 +9,11 @@ public class Member
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string? Id { get; set; }
+    public string Id { get; set; }
+    public Member()
+    {
+        Id = ObjectId.GenerateNewId().ToString();
+    }
 
     [BsonElement("full_name")]
     public required string FullName { get; set; }

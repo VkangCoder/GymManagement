@@ -9,7 +9,7 @@ public static class EquipmentMapper
     public static Equipment ToEntity(this CreateEquipmentRequest request) => new()
     {
         Name = request.Name,
-        Category = request.Category!.Value, //  [Required] → make sure have a value
+        Category = request.Category!.Value,
         Brand = request.Brand,
         PurchaseDate = request.PurchaseDate,
         Price = request.Price

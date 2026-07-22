@@ -18,7 +18,7 @@ public class EquipmentsController : ControllerBase
     public async Task<ActionResult<List<EquipmentResponse>>> GetAll(CancellationToken ct)
     {
         var equipments = await _equipmentService.GetAllAsync(ct);
-        return Ok(equipments.Select(e => e.ToResponse()));
+        return Ok(equipments.Select(e => e.ToResponse()).ToList());
     }
 
     [HttpGet("{id}")]
