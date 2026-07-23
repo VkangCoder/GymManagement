@@ -6,9 +6,9 @@ namespace GymManagement.Api.Services;
 
 public class EquipmentService : IEquipmentService
 {
-    private readonly IRepository<Equipment> _repository; 
+    private readonly IRepository<Equipment> _repository;  
 
-    public EquipmentService(IRepository<Equipment> repository)  
+    public EquipmentService(IRepository<Equipment> repository)
     {
         _repository = repository;
     }

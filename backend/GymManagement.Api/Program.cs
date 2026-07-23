@@ -9,13 +9,10 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Scalar.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args); // Prepare the blueprint and gather the building materials
-
-// Read the "MongoDbSettings" section from appsettings.json and bind it to the MongoDbSettings class
+var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDbSettings"));
 
-// Register MongoClient as a Singleton — created ONCE and reused for the whole app lifetime
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var settings = builder.Configuration
@@ -23,11 +20,14 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
     return new MongoClient(settings!.ConnectionString);
 });
 
-builder.Services.AddOpenApi(); // Use OpenAPI provided by the ASP.NET Core framework (part of .NET)
-
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // Enable controllers via .AddControllers() (routing), and globally convert enums to strings via .AddJsonOptions()
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
@@ -39,19 +39,45 @@ builder.Services.AddScoped<IRepository<Equipment>>(sp =>
         sp.GetRequiredService<IOptions<MongoDbSettings>>(),
         "equipments"));
 
-var app = builder.Build(); // Use all the prepared "materials" to build the app — the actual running web application
+builder.Services.AddScoped<IRepository<Member>>(sp =>
+new MongoRepository<Member>(
+sp.GetRequiredService<IMongoClient>(),
+sp.GetRequiredService<IOptions<MongoDbSettings>>(),
+"members"));
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) // Only used in the dev environment; skipped in production so it won't show up
+builder.Services.AddCors(options =>
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    options.AddPolicy("MyCorsPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger(options =>
+     {
+         options.RouteTemplate = "openapi/{documentName}.json";
+     });
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("Gym Management API")
+               .WithTheme(ScalarTheme.Kepler) 
+               .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection(); // Automatically redirect users from insecure HTTP links to secure HTTPS links
+app.UseHttpsRedirection();
 
-app.UseAuthorization(); // Turn on permission checking
+app.UseCors("MyCorsPolicy");
 
-app.MapControllers(); // Goes together with AddControllers() above: that one sets things up, this one activates it by wiring the request URLs to the matching controller methods
+app.UseAuthorization();
 
-app.Run(); // Run
+app.MapControllers();
+
+app.Run();

@@ -2,84 +2,59 @@ using GymManagement.Api.Entities;
 using GymManagement.Api.Enums;
 using GymManagement.Api.Exceptions;
 using GymManagement.Api.Interfaces;
-using GymManagement.Api.Settings;
-using Microsoft.Extensions.Options;
-using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace GymManagement.Api.Services;
 
 public class MemberService : IMemberService
 {
-    private readonly IMongoCollection<Member> _members;
 
-    public MemberService(IMongoClient client, IOptions<MongoDbSettings> settings)
+    private readonly IRepository<Member> _repository;  
+
+    public MemberService(IRepository<Member> repository)  
     {
-        var database = client.GetDatabase(settings.Value.DatabaseName);
-        _members = database.GetCollection<Member>("members");
+        _repository = repository;
     }
 
     public Task<List<Member>> GetAllAsync(CancellationToken ct = default) =>
-        _members.Find(FilterDefinition<Member>.Empty).ToListAsync(ct);
+        _repository.GetAllAsync(ct);
 
-    public async Task<Member?> GetByIdAsync(string id, CancellationToken ct = default)
-    {
-        if (!ObjectId.TryParse(id, out _)) return null;
-        return await _members.Find(m => m.Id == id).FirstOrDefaultAsync(ct);
-    }
+    public Task<Member?> GetByIdAsync(string id, CancellationToken ct = default) => _repository.GetByIdAsync(id, ct);
 
-    public async Task<Member> CreateMemberAsync(Member member, CancellationToken ct = default)
+    public async Task<Member> CreateMemberAsync(Member m, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        member.Email = member.Email.Trim().ToLowerInvariant(); // chuẩn hóa để unique nhất quán
-        member.JoinDate = now;
-        member.CreatedAt = now;
-        member.UpdatedAt = null;
-        member.Status = Status.Active;
+        m.Email = m.Email.Trim().ToLowerInvariant(); 
+        m.JoinDate = now;
+        m.CreatedAt = now;
+        m.UpdatedAt = null;
+        m.Status = Status.Active;
 
         try
         {
-            await _members.InsertOneAsync(member, cancellationToken: ct);
-            return member;
+            await _repository.InsertAsync(m, ct);
+            return m;
         }
-        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        catch (DuplicateKeyException ex)
         {
-            throw new DuplicateMemberException(ResolveDuplicateField(ex.WriteError.Message));
+            throw new DuplicateMemberException(ResolveDuplicateField(ex.ConstraintName!));
         }
     }
 
-    public async Task<Member?> UpdateMemberAsync(string id, Member member, CancellationToken ct = default)
+    public async Task<Member?> UpdateMemberAsync(string id, Member m, CancellationToken ct = default)
     {
-        if (!ObjectId.TryParse(id, out _)) return null;
+        var existing = await _repository.GetByIdAsync(id, ct);
+        if (existing == null) return null;
 
-        var update = Builders<Member>.Update
-            .Set(m => m.FullName, member.FullName)
-            .Set(m => m.Email, member.Email.Trim().ToLowerInvariant())
-            .Set(m => m.PhoneNumber, member.PhoneNumber)
-            .Set(m => m.Gender, member.Gender)
-            .Set(m => m.DateOfBirth, member.DateOfBirth)
-            .Set(m => m.Status, member.Status)
-            .Set(m => m.UpdatedAt, DateTime.UtcNow);
-        // KHÔNG set CreatedAt / JoinDate → tự preserve
+        m.Id = id;
+        m.CreatedAt = existing.CreatedAt;
+        m.UpdatedAt = DateTime.UtcNow;
 
-        var options = new FindOneAndUpdateOptions<Member> { ReturnDocument = ReturnDocument.After };
-
-        try
-        {
-            return await _members.FindOneAndUpdateAsync(m => m.Id == id, update, options, ct);
-        }
-        catch (MongoCommandException ex) when (ex.Code == 11000) // duplicate key khi update email/phone
-        {
-            throw new DuplicateMemberException(ResolveDuplicateField(ex.Message));
-        }
+        var isSuccess = await _repository.ReplaceAsync(id, m, ct);
+        return isSuccess ? m : null;
     }
 
-    public async Task<bool> DeleteMemberAsync(string id, CancellationToken ct = default)
-    {
-        if (!ObjectId.TryParse(id, out _)) return false;
-        var result = await _members.DeleteOneAsync(m => m.Id == id, ct);
-        return result.DeletedCount > 0;
-    }
+    public Task<bool> DeleteMemberAsync(string id, CancellationToken ct = default) => _repository.DeleteAsync(id, ct);
 
     private static string ResolveDuplicateField(string errorMessage)
     {

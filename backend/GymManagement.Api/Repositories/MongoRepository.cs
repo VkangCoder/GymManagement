@@ -6,12 +6,10 @@ using MongoDB.Driver;
 
 namespace GymManagement.Api.Repositories;
 
-
 public class MongoRepository<T> : IRepository<T> where T : class
 {
     private readonly IMongoCollection<T> _collection;
 
-    
     public MongoRepository(
         IMongoClient client,
         IOptions<MongoDbSettings> settings,
@@ -21,16 +19,16 @@ public class MongoRepository<T> : IRepository<T> where T : class
         _collection = database.GetCollection<T>(collectionName);
     }
 
-   
+    private static FilterDefinition<T> ById(string id) =>
+        Builders<T>.Filter.Eq("_id", ObjectId.Parse(id));
+
     public async Task<List<T>> GetAllAsync(CancellationToken ct = default) =>
         await _collection.Find(_ => true).ToListAsync(ct);
 
     public async Task<T?> GetByIdAsync(string id, CancellationToken ct = default)
     {
         if (!ObjectId.TryParse(id, out _)) return null;
-        var filter = Builders<T>.Filter.Eq("Id", id);
-        return await _collection.Find(filter).FirstOrDefaultAsync(ct);
-
+        return await _collection.Find(ById(id)).FirstOrDefaultAsync(ct);
     }
 
     public async Task InsertAsync(T entity, CancellationToken ct = default) =>
@@ -39,16 +37,14 @@ public class MongoRepository<T> : IRepository<T> where T : class
     public async Task<bool> ReplaceAsync(string id, T entity, CancellationToken ct = default)
     {
         if (!ObjectId.TryParse(id, out _)) return false;
-        var filter = Builders<T>.Filter.Eq("Id", id);
-        var result = await _collection.ReplaceOneAsync(filter, entity, cancellationToken: ct);
+        var result = await _collection.ReplaceOneAsync(ById(id), entity, cancellationToken: ct);
         return result.MatchedCount > 0;
     }
 
     public async Task<bool> DeleteAsync(string id, CancellationToken ct = default)
     {
         if (!ObjectId.TryParse(id, out _)) return false;
-        var filter = Builders<T>.Filter.Eq("Id", id);
-        var result = await _collection.DeleteOneAsync(filter, ct);
+        var result = await _collection.DeleteOneAsync(ById(id), ct);
         return result.DeletedCount > 0;
     }
 }
