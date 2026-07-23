@@ -38,9 +38,12 @@ public class EquipmentsController : ControllerBase
 
     [HttpPut("{id}")]
     public async Task<ActionResult<EquipmentResponse>> UpdateEquipment(
-        string id, [FromBody] UpdateEquipmentRequest request, CancellationToken ct)
+    string id, [FromBody] UpdateEquipmentRequest request, CancellationToken ct)
     {
-        var updated = await _equipmentService.UpdateEquipmentAsync(id, request.ToEntity(), ct);
+        var entity = request.ToEntity();
+        entity.Id = id;
+
+        var updated = await _equipmentService.UpdateEquipmentAsync(id, entity, ct);
         return updated is null
             ? NotFound($"Equipment with ID {id} was not found.")
             : Ok(updated.ToResponse());

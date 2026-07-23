@@ -1,10 +1,13 @@
 using System.Text.Json.Serialization;
+using GymManagement.Api.Entities;
 using GymManagement.Api.Infrastructure;
 using GymManagement.Api.Interfaces;
+using GymManagement.Api.Repositories;
 using GymManagement.Api.Services;
 using GymManagement.Api.Settings;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using Scalar.AspNetCore; // Import the API UI library so we can use it
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args); // Prepare the blueprint and gather the building materials
 
@@ -29,6 +32,12 @@ builder.Services.AddControllers()
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddHostedService<MongoIndexInitializer>();
+
+builder.Services.AddScoped<IRepository<Equipment>>(sp =>
+    new MongoRepository<Equipment>(
+        sp.GetRequiredService<IMongoClient>(),
+        sp.GetRequiredService<IOptions<MongoDbSettings>>(),
+        "equipments"));
 
 var app = builder.Build(); // Use all the prepared "materials" to build the app — the actual running web application
 
