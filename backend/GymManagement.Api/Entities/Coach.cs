@@ -22,6 +22,10 @@ public class Coach
     [BsonElement("phone_number")]
     public string PhoneNumber { get; set; } = string.Empty;
 
+    [BsonElement("gender")]
+    [BsonRepresentation(BsonType.String)]
+    public Gender Gender { get; set; }
+
     [BsonElement("specialty")]
     [BsonRepresentation(BsonType.String)]
     public CoachSpecialty Specialty { get; set; } = CoachSpecialty.Unknown;

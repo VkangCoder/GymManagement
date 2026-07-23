@@ -35,6 +35,15 @@ public class MongoIndexInitializer : IHostedService
 
         await members.Indexes.CreateManyAsync(new[] { emailIndex, phoneIndex }, ct);
         _logger.LogInformation("MongoDB indexes ensured for 'members'.");
+
+        var coaches = _client.GetDatabase(_settings.DatabaseName).GetCollection<Coach>("coaches");
+
+        var coachPhoneIndex = new CreateIndexModel<Coach>(
+            Builders<Coach>.IndexKeys.Ascending(c => c.PhoneNumber),
+            new CreateIndexOptions { Unique = true, Name = "ux_coaches_phone" });
+
+        await coaches.Indexes.CreateManyAsync(new[] { coachPhoneIndex }, ct);
+        _logger.LogInformation("MongoDB indexes ensured for 'coaches'.");
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;

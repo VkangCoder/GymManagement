@@ -51,7 +51,7 @@ public class MembersController : ControllerBase
         {
             var updated = await _memberService.UpdateMemberAsync(id, request.ToEntity(), ct);
             return updated is null
-                ? NotFound($"Không tìm thấy hội viên có Id: {id} để cập nhật.")
+                ? NotFound($"Cannot found member with Id: {id} để cập nhật.")
                 : Ok(updated.ToResponse());
         }
         catch (DuplicateMemberException ex)
@@ -66,6 +66,6 @@ public class MembersController : ControllerBase
         var isDeleted = await _memberService.DeleteMemberAsync(id, ct);
         return isDeleted
             ? NoContent()
-            : NotFound($"Không tìm thấy hội viên có Id: {id} để xóa.");
+            : NotFound($"Cannot found member with Id: {id} to delete.");
     }
 }

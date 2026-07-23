@@ -8,10 +8,9 @@ namespace GymManagement.Api.Services;
 
 public class MemberService : IMemberService
 {
+    private readonly IRepository<Member> _repository;
 
-    private readonly IRepository<Member> _repository;  
-
-    public MemberService(IRepository<Member> repository)  
+    public MemberService(IRepository<Member> repository)
     {
         _repository = repository;
     }
@@ -24,7 +23,7 @@ public class MemberService : IMemberService
     public async Task<Member> CreateMemberAsync(Member m, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        m.Email = m.Email.Trim().ToLowerInvariant(); 
+        m.Email = m.Email.Trim().ToLowerInvariant();
         m.JoinDate = now;
         m.CreatedAt = now;
         m.UpdatedAt = null;

@@ -26,11 +26,16 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
+builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
+builder.Services.AddScoped<ICoachService, CoachService>();
 builder.Services.AddHostedService<MongoIndexInitializer>();
 
 builder.Services.AddScoped<IRepository<Equipment>>(sp =>
@@ -44,6 +49,12 @@ new MongoRepository<Member>(
 sp.GetRequiredService<IMongoClient>(),
 sp.GetRequiredService<IOptions<MongoDbSettings>>(),
 "members"));
+
+builder.Services.AddScoped<IRepository<Coach>>(sp =>
+    new MongoRepository<Coach>(
+        sp.GetRequiredService<IMongoClient>(),
+        sp.GetRequiredService<IOptions<MongoDbSettings>>(),
+        "coaches"));
 
 builder.Services.AddCors(options =>
 {
@@ -59,17 +70,14 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger(options =>
-     {
-         options.RouteTemplate = "openapi/{documentName}.json";
-     });
+    app.MapOpenApi();
     app.MapScalarApiReference(options =>
     {
         options.WithTitle("Gym Management API")
-               .WithTheme(ScalarTheme.Kepler) 
+               .WithTheme(ScalarTheme.Kepler)
                .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
-    app.UseSwaggerUI();
+
 }
 
 app.UseHttpsRedirection();
