@@ -1,0 +1,39 @@
+.admin-shell {
+  --header-height: 64px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.admin-shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-height);
+  line-height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.admin-shell__body {
+  height: calc(100vh - var(--header-height));
+}
+
+.admin-shell__sider {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition:
+    width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-shell__content {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: 24px;
+}

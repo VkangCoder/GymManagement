@@ -2,9 +2,9 @@ namespace GymManagement.Api.Enums;
 
 public enum EquipmentBrand
 {
-    Unknown = 0,
-    Technogym = 1,
-    LifeFitness = 2,
-    Impulse = 3,
-    Matrix = 4
+    Unknown,
+    Technogym,
+    LifeFitness,
+    Impulse,
+    Matrix
 }

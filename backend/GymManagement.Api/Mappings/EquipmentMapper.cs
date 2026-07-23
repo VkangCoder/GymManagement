@@ -11,9 +11,7 @@ public static class EquipmentMapper
     {
         Name = request.Name,
         Category = request.Category!.Value,
-        Brand = !string.IsNullOrEmpty(request.Brand)
-    ? Enum.Parse<EquipmentBrand>(request.Brand, true)
-    : EquipmentBrand.Unknown,
+        Brand = request.Brand ?? EquipmentBrand.Unknown,
         PurchaseDate = request.PurchaseDate,
         Price = request.Price
     };
@@ -23,9 +21,7 @@ public static class EquipmentMapper
     {
         Name = request.Name,
         Category = request.Category!.Value,
-        Brand = !string.IsNullOrEmpty(request.Brand)
-    ? Enum.Parse<EquipmentBrand>(request.Brand, true)
-    : EquipmentBrand.Unknown,
+        Brand = request.Brand ?? EquipmentBrand.Unknown,
         PurchaseDate = request.PurchaseDate,
         Status = request.Status!.Value,
         Price = request.Price

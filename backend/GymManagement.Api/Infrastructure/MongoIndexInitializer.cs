@@ -23,6 +23,7 @@ public class MongoIndexInitializer : IHostedService
 
     public async Task StartAsync(CancellationToken ct)
     {
+        //Member
         var members = _client.GetDatabase(_settings.DatabaseName).GetCollection<Member>("members");
 
         var emailIndex = new CreateIndexModel<Member>(
@@ -36,6 +37,8 @@ public class MongoIndexInitializer : IHostedService
         await members.Indexes.CreateManyAsync(new[] { emailIndex, phoneIndex }, ct);
         _logger.LogInformation("MongoDB indexes ensured for 'members'.");
 
+
+        //Coach
         var coaches = _client.GetDatabase(_settings.DatabaseName).GetCollection<Coach>("coaches");
 
         var coachPhoneIndex = new CreateIndexModel<Coach>(
@@ -44,6 +47,16 @@ public class MongoIndexInitializer : IHostedService
 
         await coaches.Indexes.CreateManyAsync(new[] { coachPhoneIndex }, ct);
         _logger.LogInformation("MongoDB indexes ensured for 'coaches'.");
+
+        //Coach
+        var equipments = _client.GetDatabase(_settings.DatabaseName).GetCollection<Equipment>("equipments");
+
+        var equipmentsBrand = new CreateIndexModel<Equipment>(
+            Builders<Equipment>.IndexKeys.Ascending(c => c.Brand),
+            new CreateIndexOptions { Unique = true, Name = "ux_equipments_brand" });
+
+        await equipments.Indexes.CreateManyAsync(new[] { equipmentsBrand }, ct);
+        _logger.LogInformation("MongoDB indexes ensured for 'equipments'.");
     }
 
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;

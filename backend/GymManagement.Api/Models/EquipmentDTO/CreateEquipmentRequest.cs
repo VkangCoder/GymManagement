@@ -13,8 +13,8 @@ public class CreateEquipmentRequest
     [EnumDataType(typeof(EquipmentCategory), ErrorMessage = "Invalid equipment category.")]
     public EquipmentCategory? Category { get; set; }
 
-    [StringLength(50, ErrorMessage = "Brand name cannot exceed 50 characters.")]
-    public string? Brand { get; set; }
+    [EnumDataType(typeof(EquipmentBrand), ErrorMessage = "Invalid equipment brand.")]
+    public EquipmentBrand? Brand { get; set; }
 
     [Required(ErrorMessage = "Purchase date is required.")]
     public DateTime PurchaseDate { get; set; }
